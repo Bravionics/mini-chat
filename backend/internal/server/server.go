@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -19,17 +20,22 @@ var upgrader = websocket.Upgrader{
 // Server configuration and state
 type Server struct {
 	addr string
+	hub *Hub
 }
 
 // Create and return a new instance of Server
 func NewServer(addr string) *Server {
 	return &Server{
 		addr: addr,
+		hub: newHub(),
 	}
 }
 
 // Initialize HTTP server and listen for connections
 func (s *Server) Start() error{
+	// Start hub
+	go s.hub.run()
+
 	http.HandleFunc("/ws", s.handleWebSocket) // WebSocket endpoint
 	http.HandleFunc("/health", s.handleHealth) // Health check endpoint
 
@@ -48,24 +54,18 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// Use upgrader to upgrade 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		// Future error handling of upgrade failure
+		log.Printf("error upgrading connection: %v", err)
 		return
 	}
 
-	// Connection closes when the function returns
-	defer conn.Close()
+	// Create a new client instance for this connection
+	client := newClient(s.hub, conn)
 
-	// Loop to handle messages from the connection
-	for {
-		messageType, p, err := conn.ReadMessage()
-		if err != nil {
-			// If read fails (client disconnect, etc.) exit the loop
-			return
-		}
+	// Register this client with the hub
+	// Done through a channel so it is thread safe
+	client.hub.register <- client
 
-		// Echo the message back for now
-		if err := conn.WriteMessage(messageType, p); err != nil {
-			return
-		}
-	}
+	// Start two goroutines to handle this client's messages
+	go client.writePump()
+	go client.readPump()
 }
