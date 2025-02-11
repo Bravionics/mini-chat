@@ -31,6 +31,10 @@ type Client struct {
 	room string // Name of room client is in
 }
 
+func (c *Client) joinRoom(roomID string) {
+    c.room = roomID
+}
+
 // Create a new client instance
 func newClient(hub *Hub, conn *websocket.Conn) *Client {
 	return &Client{
@@ -64,6 +68,12 @@ func (c *Client) readPump() {
 			break
 		}
 		message.Timestamp = time.Now().Unix()
+		
+		// Handle system messages
+		if message.Type == models.SystemMessage {
+			c.joinRoom(message.Room)
+		}
+		
 		c.hub.broadcast <- message
 	}
 }
