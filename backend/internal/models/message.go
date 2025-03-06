@@ -5,6 +5,7 @@ type MessageType string
 const (
 	TextMessage MessageType = "text"
 	SystemMessage MessageType = "system"
+	RoomUpdateMessage MessageType = "room_update"
 )
 
 type Message struct {

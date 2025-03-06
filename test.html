@@ -9,17 +9,51 @@
     <input type="text" id="messageInput" placeholder="Type a message...">
     <button onclick="sendMessage()">Send</button>
 
+    <div>
+        <select id="roomSelect">
+            <option value="general">General</option>
+        </select>
+        <input type="text" id="newRoomInput" placeholder="New room name">
+        <button onclick="createRoom()">Create Room</button>
+        <button onclick="joinRoom()">Join Room</button>
+    </div>
+
     <script>
         const socket = new WebSocket('ws://localhost:8080/ws');
         const messages = document.getElementById('messages');
         const input = document.getElementById('messageInput');
 
+        // Generate a random user ID for this session
+        const userId = 'User' + Math.floor(Math.random() * 1000);
+
         socket.onopen = function() {
             appendMessage('Connected to server');
+            refreshRoomList();
         };
 
         socket.onmessage = function(event) {
-            appendMessage('Received: ' + event.data);
+            try {
+                const message = JSON.parse(event.data);
+                if (message.type === "room_update") {
+                    // Add the new room to the dropdown if it doesn't exist
+                    const select = document.getElementById('roomSelect');
+                    if (!Array.from(select.options).some(opt => opt.value === message.room)) {
+                        const option = new Option(message.content, message.room);
+                        select.add(option);
+                        // Auto-select the new room only if we created it (if the input field is empty)
+                        if (document.getElementById('newRoomInput').value === '') {
+                            option.selected = true;
+                        }
+                    }
+                    appendMessage(`New room "${message.content}" has been created`);
+                } else if (message.type === "system") {
+                    appendMessage(`[${message.room}] ${message.content}`);
+                } else {
+                    appendMessage(`[${message.room}] ${message.sender}: ${message.content}`);
+                }
+            } catch (e) {
+                appendMessage('Received: ' + event.data);
+            }
         };
 
         socket.onclose = function() {
@@ -30,13 +64,86 @@
             const div = document.createElement('div');
             div.textContent = text;
             messages.appendChild(div);
+            // Auto-scroll to bottom
+            messages.scrollTop = messages.scrollHeight;
         }
 
         function sendMessage() {
-            const message = input.value;
-            socket.send(message);
+            if (input.value.trim() === '') return;
+            
+            const roomId = document.getElementById('roomSelect').value;
+            const message = {
+                type: "text",
+                content: input.value,
+                sender: userId,
+                room: roomId,
+                timestamp: Math.floor(Date.now() / 1000)
+            };
+            socket.send(JSON.stringify(message));
             input.value = '';
-            appendMessage('Sent: ' + message);
+        }
+
+        // Allow Enter key to send message
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        async function createRoom() {
+            const name = document.getElementById('newRoomInput').value;
+            if (!name) return;
+            
+            try {
+                const response = await fetch('http://localhost:8080/rooms/create', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name})
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                await response.json(); // Just wait for response, room will be added via WebSocket
+                document.getElementById('newRoomInput').value = '';
+            } catch (error) {
+                console.error('Room creation error:', error);
+                appendMessage(`Error creating room: ${error.message}`);
+                if (error instanceof Response) {
+                    const text = await error.text();
+                    appendMessage(`Server response: ${text}`);
+                }
+            }
+        }
+
+        function joinRoom() {
+            const roomId = document.getElementById('roomSelect').value;
+            const message = {
+                type: "system",
+                content: `${userId} joined the room`,
+                sender: "system",
+                room: roomId,
+                timestamp: Math.floor(Date.now() / 1000)
+            };
+            socket.send(JSON.stringify(message));
+        }
+
+        async function refreshRoomList() {
+            try {
+                const response = await fetch('http://localhost:8080/rooms');
+                const rooms = await response.json();
+                const select = document.getElementById('roomSelect');
+                select.innerHTML = '';
+                
+                rooms.forEach(room => {
+                    const option = new Option(room.name, room.id);
+                    if (room.id === "general") option.selected = true;
+                    select.add(option);
+                });
+            } catch (error) {
+                console.error('Error refreshing rooms:', error);
+            }
         }
     </script>
 </body>
