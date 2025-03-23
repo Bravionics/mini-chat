@@ -1,16 +1,17 @@
 // MessageType enum mirrors the MessageType constants defined in the Go backend
-// Corresponds to: TextMessage, SystemMessage, and RoomUpdateMessage
-enum MessageType { text, system, roomUpdate }
+// Corresponds to: TextMessage, SystemMessage, RoomUpdateMessage, and now ImageMessage
+enum MessageType { text, system, roomUpdate, image }
 
 // Message class mirrors the Message struct in the Go backend
 // Used for converting messages between Flutter client and backend
 class Message {
   // Fields match the JSON tags defined in the Go Message struct
-  final MessageType type; // Type of message (text, system, room_update)
+  final MessageType type; // Type of message (text, system, room_update, image)
   final String content; // Message content
   final String sender; // Message sender
   final String room; // Room ID where message was sent
   final int timestamp; // Unix timestamp when message was sent
+  final List<String>? imagePaths; // Optional paths to images from image_picker
 
   Message({
     required this.type,
@@ -18,6 +19,7 @@ class Message {
     required this.sender,
     required this.room,
     required this.timestamp,
+    this.imagePaths,
   });
 
   // Creates a frontend Message from JSON received from Go backend
@@ -31,6 +33,10 @@ class Message {
       sender: json['sender'],
       room: json['room'],
       timestamp: json['timestamp'],
+      imagePaths:
+          json['image_paths'] != null
+              ? List<String>.from(json['image_paths'])
+              : null,
     );
   }
 
@@ -42,5 +48,6 @@ class Message {
     'sender': sender,
     'room': room,
     'timestamp': timestamp,
+    'image_paths': imagePaths,
   };
 }

@@ -1,8 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/message.dart';
 
-/// A widget that displays a chat message in a rectangular container
-/// with a slight border to separate it from the background.
+/// A widget that displays a chat message in a bubble
 class MessageBubble extends StatelessWidget {
   /// The message to display
   final Message message;
@@ -56,7 +57,6 @@ class MessageBubble extends StatelessWidget {
                   isCurrentUser
                       ? theme.colorScheme.primary.withOpacity(0.3)
                       : Colors.grey.shade300,
-              width: 1.0,
             ),
             borderRadius: BorderRadius.circular(4.0),
           ),
@@ -74,7 +74,18 @@ class MessageBubble extends StatelessWidget {
                 ),
 
               // Message content
-              Text(message.content, style: textTheme.bodyMedium),
+              if (message.content.isNotEmpty)
+                Text(message.content, style: textTheme.bodyMedium),
+              
+              // Images, if any
+              if (message.imagePaths != null && message.imagePaths!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child:
+                      message.imagePaths!.length == 1
+                          ? _buildSingleImage(message.imagePaths!.first)
+                          : _buildImageGrid(message.imagePaths!),
+                ),
 
               // Timestamp
               Align(
@@ -94,6 +105,50 @@ class MessageBubble extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  /// Builds a single image view
+  Widget _buildSingleImage(String imagePath) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4.0),
+      child: _buildImage(imagePath, height: 180),
+    );
+  }
+
+  /// Builds a grid for displaying multiple images
+  Widget _buildImageGrid(List<String> imagePaths) {
+    return SizedBox(
+      height: imagePaths.length < 2 ? 100 : 260,
+      child: GridView.count(
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisCount: 2,
+        mainAxisSpacing: 4,
+        crossAxisSpacing: 4,
+        children:
+            imagePaths.map((path) {
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(4.0),
+                child: _buildImage(path),
+              );
+            }).toList(),
+      ),
+    );
+  }
+
+  /// Builds an image that works on both web and mobile platforms
+  Widget _buildImage(String imagePath, {double? height}) {
+    return Image.network(
+      imagePath,
+      fit: BoxFit.cover,
+      height: height,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          height: height,
+          color: Colors.grey.shade200,
+          child: const Icon(Icons.broken_image, color: Colors.grey),
+        );
+      },
     );
   }
 

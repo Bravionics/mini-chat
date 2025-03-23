@@ -50,15 +50,9 @@ class _ChatPageState extends State<ChatPage> {
             );
 
             return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(currentRoom.name),
-                Text(
-                  '${currentRoom.numClients} users',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.white70),
-                ),
               ],
             );
           },
@@ -112,8 +106,11 @@ class _ChatPageState extends State<ChatPage> {
 
           // Message input
           MessageInput(
-            onSendMessage: (content) {
-              context.read<ChatProvider>().sendMessage(content);
+            onSendMessage: (content, {List<String>? imagePaths}) {
+              context.read<ChatProvider>().sendMessage(
+                content,
+                imagePaths: imagePaths,
+              );
             },
           ),
         ],
