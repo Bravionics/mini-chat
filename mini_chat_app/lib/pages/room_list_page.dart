@@ -36,17 +36,32 @@ class RoomListPage extends StatelessWidget {
       // Use Consumer to rebuild only when rooms list changes
       body: Consumer<ChatProvider>(
         builder: (context, chatProvider, child) {
-          if (!chatProvider.isConnected) {
+          if (!chatProvider.isConnected &&
+              chatProvider.connectionError == null) {
             return const Center(child: Text('Connecting...'));
           }
+          
+          // Show the room list even if there's a connection error
+          Widget content;
 
-          return ListView.builder(
-            itemCount: chatProvider.rooms.length,
-            itemBuilder: (context, index) {
-              final room = chatProvider.rooms[index];
-              return RoomListTile(room: room);
-            },
-          );
+          if (chatProvider.rooms.isEmpty) {
+            content = Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [const Text('No rooms available')],
+              ),
+            );
+          } else {
+            content = ListView.builder(
+              itemCount: chatProvider.rooms.length,
+              itemBuilder: (context, index) {
+                final room = chatProvider.rooms[index];
+                return RoomListTile(room: room);
+              },
+            );
+          }
+
+          return content;
         },
       ),
       floatingActionButton: FloatingActionButton(
