@@ -8,8 +8,7 @@ import 'services/chat_service.dart';
 import 'services/openai_service.dart';
 
 // Don't expose key in production.
-const String openAiApiKey =
-    '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';
+const String openAiApiKey = '';
 
 void main() {
   runApp(const MyApp());
