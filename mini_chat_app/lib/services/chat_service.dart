@@ -6,8 +6,8 @@ import '../models/message.dart';
 import '../models/room.dart';
 
 class ChatService {
-  final String _wsURL = 'ws://localhost:8080/ws';
-  final String _httpURL = 'http://localhost:8080';
+  final String _wsURL = 'wss://mini-chat-103702261730.us-west2.run.app/ws';
+  final String _httpURL = 'https://mini-chat-103702261730.us-west2.run.app';
   late final WebSocketChannel _channel;
 
   // Stream controller for messages
