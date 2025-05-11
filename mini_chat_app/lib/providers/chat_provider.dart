@@ -24,7 +24,7 @@ class ChatProvider with ChangeNotifier {
 
   /// Whether rooms are currently being refreshed
   bool isRefreshing = false;
-  
+
   /// Error message when server connection fails
   String? connectionError;
 
@@ -84,7 +84,7 @@ class ChatProvider with ChangeNotifier {
       final roomsFuture = _chatService.getRooms();
       final results = await Future.wait([minLoadingFuture, roomsFuture]);
       rooms = results[1]; // roomsFuture result
-      
+
       // Always add the OpenAI room to the list if it's not already there
       _ensureOpenAiRoomExists();
     } catch (e) {
@@ -98,7 +98,7 @@ class ChatProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   /// Ensures that the OpenAI chat room always exists in the rooms list
   void _ensureOpenAiRoomExists() {
     bool openAiRoomExists = rooms.any((room) => room.id == openAiRoomId);
@@ -134,12 +134,12 @@ class ChatProvider with ChangeNotifier {
   void joinRoom(String roomId) {
     currentRoom = roomId;
     messages.clear();
-    
+
     // Only call the chat service's joinRoom for non-OpenAI rooms
     if (roomId != openAiRoomId) {
       _chatService.joinRoom(roomId);
     }
-    
+
     notifyListeners();
   }
 
@@ -160,16 +160,17 @@ class ChatProvider with ChangeNotifier {
       timestamp: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       imagePaths: imagePaths,
     );
-    
-    // Add the message to the local messages list
-    messages.add(message);
-    notifyListeners();
 
     // If it's the OpenAI room, use the OpenAI service to get a response
     if (currentRoom == openAiRoomId) {
+      // Add the user's message to the local messages list for OpenAI chat
+      // This is needed because OpenAI responses aren't echoed by the main chat WebSocket
+      messages.add(message);
+      notifyListeners();
       await _handleOpenAiMessage(content, imagePaths: imagePaths);
     } else {
       // For regular rooms, send through the chat service
+      // The message will be added to the list when it's received back from the WebSocket
       _chatService.sendMessage(message);
     }
   }
