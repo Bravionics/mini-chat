@@ -34,7 +34,7 @@ func newHub() *Hub {
 	}
 	
 	// Create default general room
-	h.createRoom("general")
+	h.createRoom("General")
 	
 	return h
 }

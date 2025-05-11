@@ -46,8 +46,10 @@
                         }
                     }
                     appendMessage(`New room "${message.content}" has been created`);
+                } else if (message.type === "system") {
+                    appendMessage(`[${message.room}] ${message.content}`);
                 } else {
-                    appendMessage(`${message.sender}: ${message.content}`);
+                    appendMessage(`[${message.room}] ${message.sender}: ${message.content}`);
                 }
             } catch (e) {
                 appendMessage('Received: ' + event.data);
